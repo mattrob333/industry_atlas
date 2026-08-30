@@ -27,15 +27,36 @@ export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-$AUTH_SECRET}"
 export NEXTAUTH_URL="${NEXTAUTH_URL:-http://localhost:3000}"
 export LLM_PROVIDER="${LLM_PROVIDER:-openai}"
 
-# Keep a local .env for Next.js database/auth only. Do not dump API keys here.
+# Write DB/auth settings, plus any AI/search keys already present in the
+# Cloud Agent process environment (Cursor secrets). Never write empty keys —
+# an empty OPENAI_API_KEY= line can hide a real key that arrives later.
 umask 077
-cat > /workspace/.env <<EOF
-DATABASE_URL=${DATABASE_URL}
-AUTH_SECRET=${AUTH_SECRET}
-NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-NEXTAUTH_URL=${NEXTAUTH_URL}
-LLM_PROVIDER=${LLM_PROVIDER}
-EOF
+{
+  echo "DATABASE_URL=${DATABASE_URL}"
+  echo "AUTH_SECRET=${AUTH_SECRET}"
+  echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}"
+  echo "NEXTAUTH_URL=${NEXTAUTH_URL}"
+  echo "LLM_PROVIDER=${LLM_PROVIDER}"
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    echo "OPENAI_API_KEY=${OPENAI_API_KEY}"
+  fi
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}"
+  fi
+  if [[ -n "${XAI_API_KEY:-}" ]]; then
+    echo "XAI_API_KEY=${XAI_API_KEY}"
+  fi
+  if [[ -n "${EXA_API_KEY:-}" ]]; then
+    echo "EXA_API_KEY=${EXA_API_KEY}"
+  fi
+  if [[ -n "${LLM_MODEL:-}" ]]; then
+    echo "LLM_MODEL=${LLM_MODEL}"
+  fi
+} > /workspace/.env
+
+if [[ -z "${EXA_API_KEY:-}" || ( -z "${OPENAI_API_KEY:-}" && -z "${ANTHROPIC_API_KEY:-}" && -z "${XAI_API_KEY:-}" ) ]]; then
+  echo "WARNING: Research keys missing. Set OPENAI_API_KEY (or Anthropic/xAI) and EXA_API_KEY as Cursor secrets, then restart."
+fi
 
 npx prisma generate
 if [[ -d prisma/migrations ]]; then
