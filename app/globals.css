@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+
+    --primary: 145 100% 39%;
+    --primary-foreground: 0 0% 24%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 44.1%;
+
+    --accent: 187 100% 37%;
+    --accent-foreground: 0 0% 18%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 10%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 145 100% 39%;
+
+    --radius: 0.625rem;
+    --radius-sm: calc(0.625rem - 4px);
+    --radius-lg: calc(0.625rem + 4px);
+    --radius-full: 9999px;
+
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.06);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+
+    --chart-1: 145 100% 39%;
+    --chart-2: 187 100% 37%;
+    --chart-3: 35 92% 55%;
+    --chart-4: 220 70% 50%;
+    --chart-5: 0 72% 51%;
+
+    --sidebar-bg: 240 6% 12%;
+    --sidebar-fg: 0 0% 92%;
+    --sidebar-muted: 0 0% 60%;
+    --sidebar-accent: 145 100% 39%;
+  }
+
+  .dark {
+    --background: 240 6% 8%;
+    --foreground: 0 0% 92%;
+
+    --card: 240 5% 12%;
+    --card-foreground: 0 0% 92%;
+
+    --popover: 240 5% 12%;
+    --popover-foreground: 0 0% 92%;
+
+    --primary: 145 100% 42%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 240 4% 18%;
+    --secondary-foreground: 0 0% 92%;
+
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 187 100% 40%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 4% 22%;
+    --input: 240 4% 22%;
+    --ring: 145 100% 42%;
+
+    --chart-1: 145 100% 45%;
+    --chart-2: 187 100% 45%;
+    --chart-3: 35 92% 60%;
+    --chart-4: 220 70% 60%;
+    --chart-5: 0 72% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.sidebar-gradient {
+  background: linear-gradient(180deg, #1C1C1E 0%, #151517 100%);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  cursor: pointer !important;
+}
+.dark .react-flow__controls button {
+  background: #1F1F22;
+  border-color: rgba(255,255,255,0.1);
+  color: #e5e5e5;
+}
+.dark .react-flow__controls button:hover {
+  background: #2a2a2e;
+}
+.dark .react-flow__attribution {
+  background: rgba(0,0,0,0.4);
+  color: #888;
+}
+.react-flow__minimap {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}

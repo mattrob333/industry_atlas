@@ -1,0 +1,220 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/industry_atlas/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Project {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  companyName         String
+  companyUrl          String?
+  companyDescription  String
+  geography           String?
+  customerScope       String?
+  strategicQuestion   String?
+  forecastHorizon     String?
+  competitorSeeds     String?
+  categoriesToExclude String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  researchRuns        ResearchRun[]
+  entities            Entity[]
+  relationships       Relationship[]
+  segments            Segment[]
+  opportunities       Opportunity[]
+  threats             Threat[]
+  industryThesis      IndustryThesis?
+}
+
+model IndustryThesis {
+  id                   String   @id @default(cuid())
+  projectId            String   @unique
+  project              Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  statedCategory       String
+  actualArena          String
+  strategicBattlefield String
+  confidence           Float    @default(0.7)
+  createdAt            DateTime @default(now())
+}
+
+model ResearchRun {
+  id           String    @id @default(cuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runType      String    @default("standard")
+  status       String    @default("pending")
+  currentStage String?
+  stageNumber  Int       @default(0)
+  totalStages  Int       @default(10)
+  sourceCount  Int       @default(0)
+  entityCount  Int       @default(0)
+  summary      String?
+  error        String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model Entity {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  entityType      String
+  name            String
+  description     String?
+  website         String?
+  geography       String?
+  revenue         String?
+  employees       String?
+  founded         String?
+  funding         String?
+  products        String?
+  strategicRole   String?
+  isChokepoint    Boolean  @default(false)
+  chokepointScore Float    @default(0)
+  confidence      Float    @default(0.7)
+  metadataJson    Json?
+  createdAt       DateTime @default(now())
+  sourceRelFrom   Relationship[] @relation("sourceEntity")
+  sourceRelTo     Relationship[] @relation("targetEntity")
+  entitySegments  EntitySegment[]
+
+  @@index([projectId])
+  @@index([entityType])
+}
+
+model Relationship {
+  id               String   @id @default(cuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceEntityId   String
+  sourceEntity     Entity   @relation("sourceEntity", fields: [sourceEntityId], references: [id], onDelete: Cascade)
+  targetEntityId   String
+  targetEntity     Entity   @relation("targetEntity", fields: [targetEntityId], references: [id], onDelete: Cascade)
+  relationshipType String
+  label            String?
+  strength         Float    @default(0.5)
+  inferred         Boolean  @default(false)
+  confidence       Float    @default(0.7)
+  createdAt        DateTime @default(now())
+
+  @@index([projectId])
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+}
+
+model Segment {
+  id                   String   @id @default(cuid())
+  projectId            String
+  project              Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name                 String
+  description          String?
+  sizeValue            String?
+  growthRate           String?
+  capitalIntensity     String?
+  competitiveIntensity String?
+  buyerGroups          String?
+  majorTechnologies    String?
+  trends               String?
+  confidence           Float    @default(0.7)
+  entitySegments       EntitySegment[]
+  createdAt            DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model EntitySegment {
+  entityId  String
+  entity    Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  segmentId String
+  segment   Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  role      String?
+  @@id([entityId, segmentId])
+}
+
+model Opportunity {
+  id               String   @id @default(cuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name             String
+  buyerPain        String?
+  whyUnderserved   String?
+  marketEvidence   String?
+  focalFit         String?
+  timeHorizon      String?
+  opportunityScore Float    @default(0.5)
+  status           String   @default("identified")
+  createdAt        DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Threat {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  trigger      String?
+  probability  Float    @default(0.5)
+  impact       Float    @default(0.5)
+  threatScore  Float    @default(0.5)
+  exposedAreas String?
+  indicators   String?
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+}

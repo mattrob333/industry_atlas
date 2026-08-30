@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#1C1C1E"/>
+  <circle cx="128" cy="128" r="100" fill="none" stroke="#00C853" stroke-width="3"/>
+  <circle cx="128" cy="128" r="85" fill="none" stroke="#00C853" stroke-width="1.5" opacity="0.4"/>
+  <path d="M128 38 L128 58 M128 198 L128 218 M38 128 L58 128 M198 128 L218 128" stroke="#00C853" stroke-width="3" stroke-linecap="round"/>
+  <path d="M128 48 L138 78 L128 73 L118 78 Z" fill="#00C853"/>
+  <circle cx="128" cy="128" r="6" fill="#00C853"/>
+  <path d="M128 128 L165 95 L155 125 Z" fill="#00C853" opacity="0.7"/>
+  <path d="M128 128 L91 161 L101 131 Z" fill="#00C853" opacity="0.9"/>
+  <text x="128" y="145" font-family="Arial, sans-serif" font-size="52" font-weight="bold" fill="#00C853" text-anchor="middle">IA</text>
+</svg>
