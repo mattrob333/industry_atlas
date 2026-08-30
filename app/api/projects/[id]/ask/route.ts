@@ -2,8 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
-
-const LLM_URL = 'https://apps.abacus.ai/v1/chat/completions'
+import { completeChat, parseJson } from '@/lib/llm'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -50,34 +49,14 @@ ${(project.threats ?? []).map((t: any) => `- ${t.name}: ${t.trigger ?? ''} | Sco
 `
 
   try {
-    const response = await fetch(LLM_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.ABACUSAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-mini',
-        messages: [
-          { role: 'system', content: `You are an industry intelligence analyst answering questions about a company's industry map. Use only the data provided. Distinguish between facts (from the data), estimates, and inferences. Respond ONLY with a valid JSON object of the form {"answer": string, "citations": string[]}. The "answer" field should be a clear, well-structured analysis (you may use line breaks and bullet points). The "citations" array should list the specific entities, segments, opportunities, or threats from the data that support your answer, e.g. "Entity: Gartner dossier" or "Segment: Custom AI Development".` },
-          { role: 'user', content: `Industry Map Data:\n${context}\n\nQuestion: ${question}\n\nReturn your response as a JSON object with "answer" and "citations" keys.` },
-        ],
-        max_tokens: 3000,
-        response_format: { type: 'json_object' },
-      }),
-    })
-    const data = await response.json()
-    if (data?.success === false || data?.error) {
-      console.error('LLM error:', data?.error)
-      return NextResponse.json({ error: 'The analyst could not process this question. Please try again.' }, { status: 502 })
-    }
-    const content = data?.choices?.[0]?.message?.content ?? ''
-    let parsed: any = {}
-    try {
-      parsed = JSON.parse(content)
-    } catch {
-      parsed = { answer: content, citations: [] }
-    }
+    const content = await completeChat(
+      [
+        { role: 'system', content: `You are an industry intelligence analyst answering questions about a company's industry map. Use only the data provided. Distinguish between facts (from the data), estimates, and inferences. Respond ONLY with a valid JSON object of the form {"answer": string, "citations": string[]}. The "answer" field should be a clear, well-structured analysis (you may use line breaks and bullet points). The "citations" array should list the specific entities, segments, opportunities, or threats from the data that support your answer, e.g. "Entity: Gartner dossier" or "Segment: Custom AI Development".` },
+        { role: 'user', content: `Industry Map Data:\n${context}\n\nQuestion: ${question}\n\nReturn your response as a JSON object with "answer" and "citations" keys.` },
+      ],
+      { jsonMode: true, maxTokens: 3000 },
+    )
+    const parsed = parseJson(content, { answer: content, citations: [] })
     const answer = parsed?.answer ?? content
     if (!answer || !String(answer).trim()) {
       return NextResponse.json({ error: 'No answer could be generated. Please try again.' }, { status: 502 })
