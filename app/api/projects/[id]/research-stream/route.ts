@@ -1,9 +1,36 @@
 export const dynamic = "force-dynamic";
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
-import { completeChat, parseJson } from '@/lib/llm'
+import { completeChat, parseJson, resolveLlmProvider } from '@/lib/llm'
 import { webEvidence } from '@/lib/search'
 import { discoverSources } from '@/lib/sources'
+
+/**
+ * Fail before any research stages run when search/AI keys are missing.
+ * Without this, each pass catches the error and the UI looks like a successful
+ * empty map (0 entities) instead of an obvious configuration problem.
+ */
+function missingResearchConfigError(): string | null {
+  const exaMissing = !(process.env.EXA_API_KEY || '').trim()
+  let llmMissing = false
+  try {
+    resolveLlmProvider()
+  } catch {
+    llmMissing = true
+  }
+
+  if (!exaMissing && !llmMissing) return null
+
+  const parts: string[] = []
+  if (exaMissing) {
+    parts.push('EXA_API_KEY is missing — web search cannot run.')
+  }
+  if (llmMissing) {
+    parts.push('No AI key found — set OPENAI_API_KEY (or ANTHROPIC_API_KEY / XAI_API_KEY).')
+  }
+  parts.push('Add the keys as Cursor secrets, restart the app, then start research again.')
+  return parts.join(' ')
+}
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -23,18 +50,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   })
 
   if (!run) {
-    // If no pending run, check if we have a completed one
+    // If no pending run, check if we have a completed one that actually produced data.
+    // Empty "completed" runs happen when keys were missing and passes failed quietly —
+    // those should not block a real retry.
     const completed = await prisma.researchRun.findFirst({
       where: { projectId: id, status: 'completed' },
       orderBy: { createdAt: 'desc' },
     })
-    if (completed) {
-      // Already done, send complete event
+    const entityCount = await prisma.entity.count({ where: { projectId: id } })
+    if (completed && entityCount > 0) {
       const encoder = new TextEncoder()
       const stream = new ReadableStream({
         start(controller) {
-          const entityCount = 0
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'complete', entityCount: 0, sourceCount: 0, summary: 'Research already completed.' })}\n\n`))
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'complete',
+            entityCount,
+            sourceCount: completed.sourceCount ?? entityCount,
+            summary: completed.summary ?? 'Research already completed.',
+          })}\n\n`))
           controller.close()
         },
       })
@@ -46,7 +79,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         },
       })
     }
-    // Create a new run
+    // Create a new run (first time, or retry after an empty/failed pass)
     run = await prisma.researchRun.create({
       data: { projectId: id, runType: 'standard', status: 'pending' },
     })
@@ -64,6 +97,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
 
       try {
+        // Stop immediately if Exa / LLM keys are not available.
+        // Previously each pass failed quietly and the run was marked "completed"
+        // with zero entities — which looks like "search never ran".
+        const configError = missingResearchConfigError()
+        if (configError) {
+          console.error('Research aborted — missing API keys:', configError)
+          await prisma.researchRun.update({
+            where: { id: runId },
+            data: {
+              status: 'failed',
+              error: configError,
+              completedAt: new Date(),
+            },
+          })
+          send({ type: 'error', message: configError })
+          return
+        }
+
         await prisma.researchRun.update({
           where: { id: runId },
           data: { status: 'running', startedAt: new Date() },
